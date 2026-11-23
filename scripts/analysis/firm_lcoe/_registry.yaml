@@ -1,0 +1,71 @@
+# Registry — scripts/analysis/firm_lcoe/
+# Schema adapted from the hub DATA_PROVENANCE.md rule 4 (modelled runs + external data pulls).
+
+- id: firm_lcoe_weather_year_lp_2026_11_18
+  date: 2026-11-18
+  kind: modelled_run
+  theme: 02-Low-Carbon-Electrification
+  project: PyPSA-GB
+  branch: gap-demand-dispatch
+  purpose: >
+    Firm LCOE (GBP/MWh delivered, real 2024, 2030 costs) of meeting the GB demand profile with
+    RE + storage vs nuclear (+ storage) vs gas CCUS, at firmness 0.90-1.0, jointly over the 41
+    weather years 1985-2025. Greenfield single-node gurobipy LP, 3-h blocks, hourly top-up at f=1.
+  spec: docs/superpowers/specs/2026-11-18-firm-lcoe-weather-year-lp-design.md
+  plan: docs/superpowers/plans/2026-11-18-firm-lcoe-weather-year-lp.md
+  inputs:
+    vre: resources/renewable/profiles/{solar_pv,wind_onshore,wind_offshore}_{1985..2025}.csv (atlite REPD fleet MW) / resources/renewable/*_sites.csv nameplate
+    demand: resources/demand/HT50_w2010_base_profile.csv (FES 2025 HT 2050, 567 TWh, identical for all weather years)
+    costs: scripts/analysis/firm_lcoe/costs.py (DESNZ Electricity Generation Costs 2025; CEPA 2025 hurdle rates; storage synthesis per spec)
+  key_assumptions:
+    - solar CF derated x11/12 to an 11.0 % 41-yr mean (DESNZ 12 % is a new-build reference plant; DUKES fleet 9.2 % 2024, 11.1 % 2025)
+    - build ceilings onshore 40 GW, solar 100 GW, offshore free (uncapped = sensitivity)
+    - storage cyclic within each weather year; nuclear fully flexible; unserved energy has no cost, firmness is a constraint
+    - Gurobi barrier without crossover for the 1.3 M-variable LPs
+  scripts:
+    inputs: scripts/analysis/firm_lcoe/inputs.py
+    model: scripts/analysis/firm_lcoe/model.py
+    sweep: scripts/analysis/firm_lcoe/run_sweep.py
+    figures: scripts/analysis/firm_lcoe/figures.py (F1-F4 from results.csv only)
+    report: scripts/analysis/firm_lcoe/report.py
+    tests: tests/unit/test_firm_lcoe_*.py (python -m pytest tests/unit/test_firm_lcoe_figures.py ...)
+  readme: scripts/analysis/firm_lcoe/README.md
+  outputs:
+    results: resources/analysis/firm_lcoe/results.csv
+    workbook: resources/analysis/firm_lcoe/firm_lcoe.xlsx
+    report: resources/analysis/firm_lcoe/firm_lcoe_report.html
+    readme: resources/analysis/firm_lcoe/README.md
+    caches: resources/analysis/firm_lcoe/inputs/{national_cf,demand}.parquet
+    log: resources/analysis/firm_lcoe/run_sweep.log
+  status: active
+
+- id: firm_lcoe_market_bids_2024_25
+  date: 2026-11-18
+  kind: external_data_acquisition
+  theme: 02-Low-Carbon-Electrification
+  project: PyPSA-GB
+  purpose: >
+    2024-25 market evidence for the firm-LCOE report: what renewables and gas bid (N2EX day-ahead,
+    Elexon bid-offer data) against the unit cost of shifting one MWh through storage.
+  data_source: Modo Energy public REST API (https://api.modoenergy.com/pub/v1), token via scripts/analysis/bidding_behaviour/.env
+  underlying: [N2EX day-ahead hourly, Elexon BMRS BOD, Elexon FUELHH, Modo GB BESS index]
+  window: 2024-01-01..2026-01-01
+  endpoints:
+    /gb/n2ex/day-ahead-hourly/prices: inputs/market/da_hourly_2024_25.csv
+    /gb/elexon/physical/bod: inputs/market/bod_monthly_2024_25.csv (first 7 days of each month, 14 representative BMUs)
+    /gb/elexon/system/fuelhh: inputs/market/ccgt_hourly_2024_25.csv
+  hand_entered:
+    nbp_day_ahead_p_th: {2024: 84.0, 2025: 86.0}   # DESNZ Fossil Fuel Price Assumptions 2025 (ICIS) 84 (2024), 94 (H1 2025); Ofgem monthly ~79 Jul/Sep 2025
+    uka_gbp_t: {2024: 37.0, 2025: 49.4}             # NAO 2025; gov.uk UK ETS civil-penalty price 2026 (12-month mean to 11 Nov 2025)
+    cps_gbp_t: 18.0
+    roc_buyout_gbp: {2024: 64.73, 2025: 67.06}
+    modo_bess_gbp_mw_yr: {2024: 52200, 2025: 71600}
+  scripts:
+    fetch_and_build: scripts/analysis/firm_lcoe/market_bids.py (not yet committed; needs scripts/analysis/bidding_behaviour)
+  outputs:
+    tidy: resources/analysis/firm_lcoe/market_bids_2024_25.csv
+  caveats:
+    - BOD sampled (first 7 days/month); medians of monthly medians
+    - annual (not monthly) NBP and UKA means; 2025 NBP full-year is an estimate from H1 94 p/th and H2 ~78 p/th
+    - existing-fleet CCGT SRMC at 50 % HHV, 0.184 t/MWh_th
+  status: active
