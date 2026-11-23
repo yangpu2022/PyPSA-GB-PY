@@ -32,6 +32,14 @@
 **Install and run.** From installation to your first run, your own scenario and its results.
 :::
 
+:::{grid-item-card} Manual
+:link: manual/index
+:link-type: doc
+:class-card: sd-shadow-md
+
+**Find your way in.** The model in three layers: one overview, a page per part, a page per package of code.
+:::
+
 :::{grid-item-card} Model Description
 :link: model/index
 :link-type: doc
@@ -79,6 +87,7 @@ validation.
 :hidden:
 
 getting_started/index
+manual/index
 model/index
 studies/index
 tutorials/index
