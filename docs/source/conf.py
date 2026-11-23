@@ -289,6 +289,7 @@ html_theme_options = {
     "github_url": "https://github.com/andrewlyden/PyPSA-GB",
     "nav_links": [
         {"title": "Getting Started", "url": "getting_started/index"},
+        {"title": "Manual", "url": "manual/index"},
         {"title": "Model Description", "url": "model/index"},
         {"title": "Studies", "url": "studies/index"},
         {"title": "Tutorials", "url": "tutorials/index"},

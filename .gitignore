@@ -5,6 +5,7 @@
 resources/
 logs/
 notebooks/
+!docs/source/manual/notebooks/
 
 # random folders
 .ipynb_checkpoints/
